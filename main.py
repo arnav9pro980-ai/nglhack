@@ -2,6 +2,7 @@ import asyncio
 import os
 import sys
 import uuid
+import time
 from typing import Optional, Set
 import aiohttp
 from aiohttp_socks import ProxyConnector
@@ -18,6 +19,21 @@ TEST_TARGET_URL = "http://httpbin.org/ip"
 TEST_TIMEOUT = 5  # Seconds per proxy connectivity check
 SUBMIT_TIMEOUT = 10  # Seconds allowed for the target API submission
 
+
+async def add_ngluptime(status_code):
+    timestamp = int(time.time())
+
+    async with aiohttp.ClientSession() as firebase_session:
+        async with firebase_session.put(
+            f"https://firebase.arnavbansal252.workers.dev/set",
+            json={
+                "path": f"/ngluptime/{timestamp}",
+                "data": status_code
+            }
+        ) as firebase_response:
+            return await firebase_response.json()
+        
+            
 # Direct Proxy Scraper Methods
 async def fetch_hproxy(session: aiohttp.ClientSession) -> Set[str]:
     url = "https://hproxy.com/api/proxy-list?format=json&country=US&protocol=socks5"
@@ -139,6 +155,8 @@ async def execute_submission(proxy: str, username: str, question: str) -> dict:
                 parsed_json = await response.json()
             except Exception:
                 parsed_json = None
+                
+            await add_ngluptime(response.status)   
 
             return {
                 "status_code": response.status,
